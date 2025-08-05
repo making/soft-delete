@@ -6,6 +6,7 @@ import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import java.time.LocalDate;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -642,6 +643,130 @@ class SoftDeleteApplicationTests {
 		// Verify only Next link is present (back to first page)
 		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
 		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+	}
+
+	@Test
+	void testAdminBanUser() {
+		// First, create a new user to ban
+		// Navigate to signup page
+		page.navigate("http://localhost:" + serverPort + "/signup");
+		assertThat(page.title()).isEqualTo("Sign up");
+
+		// Fill signup form with test data
+		String testUsername = "usertoban";
+		String testDisplayName = "User To Ban";
+		String testEmail = "usertoban@example.org";
+
+		page.locator("#ott-username").fill(testUsername);
+		page.locator("#ott-displayName").fill(testDisplayName);
+		page.locator("#ott-email").fill(testEmail);
+
+		// Submit signup form
+		page.locator("button[type=submit]").press("Enter");
+
+		// Verify redirect to success page
+		assertThat(page.title()).isEqualTo("Account Registration");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Check your email to activate the account.");
+
+		// Check activation email was sent
+		ResponseEntity<JsonNode> emailsResponse = restClient.get()
+			.uri("http://127.0.0.1:" + maildevPort + "/email")
+			.retrieve()
+			.toEntity(JsonNode.class);
+		assertThat(emailsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+		JsonNode emails = emailsResponse.getBody();
+		assertThat(emails).isNotNull();
+		assertThat(emails.size()).isEqualTo(1);
+
+		JsonNode activationEmail = emails.get(0);
+		assertThat(activationEmail.get("subject").asText()).isEqualTo("Activate your account");
+
+		// Extract activation link and activate account
+		String emailText = activationEmail.get("text").asText();
+		String activationLink = emailText.split("Please activate your account by clicking the following link:\n")[1]
+			.split("\n\n")[0];
+		page.navigate(activationLink);
+
+		// Verify successful activation
+		assertThat(page.title()).isEqualTo("Successfully activated!");
+
+		// Clear emails
+		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+
+		// Now login as admin user
+		page.navigate("http://localhost:" + serverPort + "/login");
+		login("johndoe", "john.doe.work@example.org");
+
+		// Navigate to admin dashboard
+		page.getByText("Admin Dashboard").click();
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+
+		// Verify the new user appears in Active Users tab (should be first due to highest
+		// ID)
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Active Users");
+		assertThat(page.locator(".user-card").count()).isGreaterThan(0);
+
+		// Find the newly created user (should be first due to highest ID)
+		Locator firstUserCard = page.locator(".user-card").first();
+		assertThat(firstUserCard.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo(testUsername);
+		assertThat(firstUserCard.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo(testDisplayName);
+
+		// Get the user ID before banning
+		String userIdToBan = firstUserCard.locator(".user-field").nth(0).locator(".field-value").textContent();
+
+		// Click Ban User button
+		firstUserCard.getByText("Ban User").click();
+
+		// Verify ban confirmation page
+		assertThat(page.title()).isEqualTo("Ban User");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Ban User");
+		assertThat(page.locator("p.message").first().textContent())
+			.contains("This action will permanently ban this user");
+
+		// Fill in ban reason and confirm
+		page.locator("#ban-reason").fill("Test ban for E2E testing");
+		page.locator("button.styled-button.danger").click();
+
+		// Verify redirect back to admin dashboard
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Active Users");
+
+		// Verify the banned user is no longer in Active Users
+		boolean userFoundInActive = false;
+		int activeUserCount = page.locator(".user-card").count();
+		for (int i = 0; i < activeUserCount; i++) {
+			String username = page.locator(".user-card")
+				.nth(i)
+				.locator(".user-field")
+				.nth(1)
+				.locator(".field-value")
+				.textContent();
+			if (username.equals(testUsername)) {
+				userFoundInActive = true;
+				break;
+			}
+		}
+		assertThat(userFoundInActive).isFalse();
+
+		// Navigate to Deleted Users tab
+		page.getByText("Deleted Users").click();
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Deleted Users");
+
+		// Verify the banned user appears in Deleted Users (should be first due to highest
+		// ID)
+		assertThat(page.locator(".user-card").count()).isGreaterThan(0);
+		Locator firstDeletedCard = page.locator(".user-card").first();
+
+		// Verify the banned user ID matches
+		String bannedUserId = firstDeletedCard.locator(".user-field").nth(0).locator(".field-value").textContent();
+		assertThat(bannedUserId).isEqualTo(userIdToBan);
+
+		// Verify the deleted timestamp is recent (should contain today's date)
+		String deletedAt = firstDeletedCard.locator(".user-field").nth(1).locator(".field-value").textContent();
+		assertThat(deletedAt).contains(String.valueOf(LocalDate.now().getYear())); // Current
+																					// year
 	}
 
 }
