@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link href="/style.css" rel="stylesheet"/>
+  <title>Admin Dashboard</title>
+</head>
+<body>
+<div class="container">
+  <h3 class="header">Admin Dashboard</h3>
+
+  {{#message}}
+    <div class="alert alert-success">{{message}}</div>
+  {{/message}}
+
+  {{#error}}
+    <div class="alert alert-error">{{error}}</div>
+  {{/error}}
+
+  <!-- Tab Navigation -->
+  <div class="tab-navigation">
+    <a href="/admin?tab=active" class="tab-link {{#isActiveTab}}active{{/isActiveTab}}">
+      Active Users
+    </a>
+    <a href="/admin?tab=pending" class="tab-link {{#isPendingTab}}active{{/isPendingTab}}">
+      Pending Users
+    </a>
+    <a href="/admin?tab=deleted" class="tab-link {{#isDeletedTab}}active{{/isDeletedTab}}">
+      Deleted Users
+    </a>
+  </div>
+
+  <!-- Active Users Tab -->
+  {{#isActiveTab}}
+    <div class="tab-content">
+      <h4>Active Users</h4>
+      {{#dashboard.activeUsers}}
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-field">
+              <label class="field-label">User ID</label>
+              <div class="field-value">{{userId}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Username</label>
+              <div class="field-value">{{userProfile.username}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Display Name</label>
+              <div class="field-value">{{userProfile.displayName}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Emails</label>
+              <div class="field-value">
+                {{#emails}}
+                  <div class="email-item">
+                    <span class="email-address">{{email}}</span>
+                    {{#isPrimary}}
+                      <span class="primary-badge">Primary</span>
+                    {{/isPrimary}}
+                  </div>
+                {{/emails}}
+              </div>
+            </div>
+          </div>
+          <div class="user-actions">
+            {{^isAdmin}}
+              <form action="/admin/users/{{userId}}/promote" method="get"
+                    style="display: inline-block; margin-right: 10px;">
+                <button class="styled-button admin" type="submit" name="confirm" value="true">
+                  Promote to Admin
+                </button>
+              </form>
+            {{/isAdmin}}
+            <form action="/admin/users/{{userId}}/ban" method="get" style="display: inline-block;">
+              <button class="styled-button danger" type="submit">Ban User</button>
+            </form>
+          </div>
+        </div>
+      {{/dashboard.activeUsers}}
+      {{^dashboard.activeUsers}}
+        <p class="message">No active users found.</p>
+      {{/dashboard.activeUsers}}
+
+      <!-- Pagination for Active Users -->
+      <div class="pagination">
+        {{#firstUserId}}
+          <a href="/admin?tab=active&cursor={{firstUserId}}&size={{size}}&navigation=PREVIOUS"
+          class="pagination-link">← Previous</a>
+        {{/firstUserId}}
+        {{#lastUserId}}
+          <a href="/admin?tab=active&cursor={{lastUserId}}&size={{size}}&navigation=NEXT"
+          class="pagination-link">Next →</a>
+        {{/lastUserId}}
+      </div>
+    </div>
+  {{/isActiveTab}}
+
+  <!-- Pending Users Tab -->
+  {{#isPendingTab}}
+    <div class="tab-content">
+      <h4>Pending Users</h4>
+      {{#dashboard.pendingUsers}}
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-field">
+              <label class="field-label">User ID</label>
+              <div class="field-value">{{userId}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Username</label>
+              <div class="field-value">{{userProfile.username}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Display Name</label>
+              <div class="field-value">{{userProfile.displayName}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Emails</label>
+              <div class="field-value">
+                {{#emails}}
+                  <div class="email-item">
+                    <span class="email-address">{{email}}</span>
+                    {{#isPrimary}}
+                      <span class="primary-badge">Primary</span>
+                    {{/isPrimary}}
+                  </div>
+                {{/emails}}
+              </div>
+            </div>
+          </div>
+          <div class="user-field" style="margin-top: 15px;">
+            <label class="field-label">Expires At</label>
+            <div class="field-value">{{expiresAt}}</div>
+          </div>
+        </div>
+      {{/dashboard.pendingUsers}}
+      {{^dashboard.pendingUsers}}
+        <p class="message">No pending users found.</p>
+      {{/dashboard.pendingUsers}}
+
+      <!-- Pagination for Pending Users -->
+      <div class="pagination">
+        {{#firstUserId}}
+          <a href="/admin?tab=pending&cursor={{firstUserId}}&size={{size}}&navigation=PREVIOUS"
+          class="pagination-link">← Previous</a>
+        {{/firstUserId}}
+        {{#lastUserId}}
+          <a href="/admin?tab=pending&cursor={{lastUserId}}&size={{size}}&navigation=NEXT"
+          class="pagination-link">Next →</a>
+        {{/lastUserId}}
+      </div>
+    </div>
+  {{/isPendingTab}}
+
+  <!-- Deleted Users Tab -->
+  {{#isDeletedTab}}
+    <div class="tab-content">
+      <h4>Deleted Users</h4>
+      {{#dashboard.deletedUsers}}
+        <div class="user-card">
+          <div class="user-info">
+            <div class="user-field">
+              <label class="field-label">User ID</label>
+              <div class="field-value">{{userId}}</div>
+            </div>
+            <div class="user-field">
+              <label class="field-label">Deleted At</label>
+              <div class="field-value">{{deletedAt}}</div>
+            </div>
+          </div>
+        </div>
+      {{/dashboard.deletedUsers}}
+      {{^dashboard.deletedUsers}}
+        <p class="message">No deleted users found.</p>
+      {{/dashboard.deletedUsers}}
+
+      <!-- Pagination for Deleted Users -->
+      <div class="pagination">
+        {{#firstUserId}}
+          <a href="/admin?tab=deleted&cursor={{firstUserId}}&size={{size}}&navigation=PREVIOUS"
+          class="pagination-link">← Previous</a>
+        {{/firstUserId}}
+        {{#lastUserId}}
+          <a href="/admin?tab=deleted&cursor={{lastUserId}}&size={{size}}&navigation=NEXT"
+          class="pagination-link">Next →</a>
+        {{/lastUserId}}
+      </div>
+    </div>
+  {{/isDeletedTab}}
+
+  <div style="margin-top: 30px; text-align: center;">
+    <form action="/account" method="get" style="display: inline-block;">
+      <button class="styled-button" type="submit">Back to Account</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>

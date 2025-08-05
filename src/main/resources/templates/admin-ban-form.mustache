@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link href="/style.css" rel="stylesheet"/>
+  <title>Ban User</title>
+</head>
+<body>
+<div class="container">
+  <form id="ban-form" class="login-form" method="post" action="/admin/users/{{user.userId}}/ban">
+    <h3 class="header">Ban User</h3>
+    
+    <div class="account-section">
+      <div class="account-field">
+        <label class="field-label">User ID</label>
+        <div class="field-value">{{user.userId}}</div>
+      </div>
+      <div class="account-field">
+        <label class="field-label">Username</label>
+        <div class="field-value">{{user.userProfile.username}}</div>
+      </div>
+      <div class="account-field">
+        <label class="field-label">Display Name</label>
+        <div class="field-value">{{user.userProfile.displayName}}</div>
+      </div>
+      <div class="account-field">
+        <label class="field-label">Email</label>
+        <div class="field-value">{{user.primaryEmail}}</div>
+      </div>
+    </div>
+    
+    <p class="message" style="color: #dc3545; margin-top: 20px;">
+      This action will permanently ban this user. Please provide a reason for the ban.
+    </p>
+    
+    <p>
+      <label for="ban-reason" class="field-label" style="margin-bottom: 8px;">Ban Reason</label>
+      <textarea id="ban-reason" name="reason" class="input-field" rows="4" 
+                placeholder="Enter the reason for banning this user..." required></textarea>
+    </p>
+    
+    {{#_csrf}}
+      <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+    {{/_csrf}}
+    
+    <button class="styled-button danger" type="submit" form="ban-form" style="margin-bottom: 10px;">
+      Ban User
+    </button>
+  </form>
+  <form action="/admin/users/{{user.userId}}/ban" method="post" style="text-align: center;">
+    {{#_csrf}}
+      <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+    {{/_csrf}}
+    <button class="styled-button secondary" type="submit" name="cancel">Cancel</button>
+  </form>
+</div>
+</body>
+</html>

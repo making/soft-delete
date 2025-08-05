@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link href="/style.css" rel="stylesheet"/>
+  <title>Delete Account</title>
+</head>
+<body>
+<div class="container">
+  <form id="delete-form" class="login-form" method="post" action="/delete">
+    <h3 class="header">Delete Account</h3>
+    <p class="message">Are you sure you want to delete your account?</p>
+    <p class="message">This action cannot be undone.</p>
+    {{#_csrf}}
+      <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+    {{/_csrf}}
+    <button class="styled-button danger" type="submit" form="delete-form" style="margin-bottom: 10px">Yes, delete my account
+    </button>
+    <button class="styled-button secondary" name="cancel" type="submit" form="delete-form">Cancel
+    </button>
+  </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link href="/style.css" rel="stylesheet"/>
+  <title>Logout</title>
+</head>
+<body>
+<div class="container">
+  <div class="header">Logout</div>
+  {{#springMacroRequestContext.request.parameterMap.error}}
+    <div class="error-message">{{SPRING_SECURITY_LAST_EXCEPTION}}</div>
+  {{/springMacroRequestContext.request.parameterMap.error}}
+  <form id="logout-form" class="logout-form" method="post" action="/logout">
+    <h3 class="header">Are you sure you want to log out?</h3>
+    <!--  This will be automatically made available by Spring Security -->
+    {{#_csrf}}
+      <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+    {{/_csrf}}
+    <button class="styled-button" type="submit" form="logout-form">Logout</button>
+  </form>
+</div>
+</body>
+</html>

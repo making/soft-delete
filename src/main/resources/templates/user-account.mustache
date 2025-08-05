@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <link href="/style.css" rel="stylesheet"/>
+  <title>Account</title>
+</head>
+<body>
+<div class="container">
+  <h3 class="header">Account Information</h3>
+
+  <div class="account-section">
+    <div class="account-field">
+      <label class="field-label">Username</label>
+      <div class="field-value">{{user.userProfile.username}}</div>
+    </div>
+
+    <div class="account-field">
+      <label class="field-label">Display Name</label>
+      <div class="field-value">{{user.userProfile.displayName}}</div>
+    </div>
+
+    <div class="account-field">
+      <label class="field-label">Email Addresses</label>
+      <div class="field-value">
+        {{#user.emails}}
+          <div class="email-item">
+            <span class="email-address">{{email}}</span>
+            {{#isPrimary}}
+              <span class="primary-badge">Primary</span>
+            {{/isPrimary}}
+          </div>
+        {{/user.emails}}
+      </div>
+    </div>
+  </div>
+
+  <div class="account-actions">
+    {{#user.isAdmin}}
+      <form action="/admin" method="get" style="display: inline-block; margin-right: 10px;">
+        <button class="styled-button admin" type="submit">Admin Dashboard</button>
+      </form>
+    {{/user.isAdmin}}
+    <form action="/logout" method="get" style="display: inline-block; margin-right: 10px;">
+      <button class="styled-button" type="submit">Logout</button>
+    </form>
+    <form action="/delete" method="get" style="display: inline-block;">
+      <button class="styled-button danger" name="confirm" type="submit">Delete Account</button>
+    </form>
+  </div>
+</div>
+</body>
+</html>
