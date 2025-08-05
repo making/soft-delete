@@ -54,7 +54,7 @@ public class MagicLinkOneTimeTokenGenerationSuccessHandler implements OneTimeTok
 					.build()
 					.toUri();
 				Notification notification = new Notification(activeUserDetails.getActiveUser().primaryEmail(),
-						"Your One Time Token", "Use the following link to sign in into the application: " + magicLink);
+						"Your One Time Token", "Use the following link to sign in into the application:\n" + magicLink);
 				this.notificationSender.sendNotification(notification);
 				this.redirectHandler.handle(request, response, oneTimeToken);
 			}

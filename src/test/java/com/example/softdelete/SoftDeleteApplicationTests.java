@@ -1,15 +1,119 @@
 package com.example.softdelete;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserContext;
+import com.microsoft.playwright.Locator;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.client.RestClient;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+		properties = { "maildev.port=0", "spring.http.client.factory=simple" })
+@ActiveProfiles("sendgrid")
 class SoftDeleteApplicationTests {
 
+	static Playwright playwright;
+
+	static Browser browser;
+
+	BrowserContext context;
+
+	Page page;
+
+	RestClient restClient;
+
+	@LocalServerPort
+	int serverPort;
+
+	int maildevPort;
+
+	@BeforeAll
+	static void before() {
+		playwright = Playwright.create();
+		browser = playwright.chromium().launch();
+	}
+
+	@AfterAll
+	static void after() {
+		playwright.close();
+	}
+
+	@BeforeEach
+	void setUp(@Autowired RestClient.Builder restClientBuilder, @Value("${maildev.port}") int maildevPort) {
+		this.restClient = restClientBuilder.defaultStatusHandler(__ -> true, (req, res) -> {
+		}).build();
+		this.maildevPort = maildevPort;
+		this.context = browser.newContext();
+		this.context.setDefaultTimeout(3000);
+		this.page = context.newPage();
+	}
+
+	@AfterEach
+	void tearDown() {
+		this.context.close();
+	}
+
+	private void login(String username, String primaryEmail) {
+		assertThat(page.title()).isEqualTo("Login");
+		page.locator("input[name=username]").fill(username);
+		page.locator("button[type=submit]").press("Enter");
+		ResponseEntity<JsonNode> emailsResponse = restClient.get()
+			.uri("http://127.0.0.1:" + maildevPort + "/email")
+			.retrieve()
+			.toEntity(JsonNode.class);
+		assertThat(emailsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+		JsonNode emails = emailsResponse.getBody();
+		assertThat(emails).isNotNull();
+		assertThat(emails.size()).isEqualTo(1);
+		JsonNode email = emails.get(0);
+		assertThat(email.get("subject").asText()).startsWith("Your One Time Token");
+		assertThat(email.get("to").get(0).get("address").asText()).startsWith(primaryEmail);
+		assertThat(email.get("from").get(0).get("address").asText()).startsWith("noreply@example.com");
+		assertThat(email.get("text").asText())
+			.startsWith("Use the following link to sign in into the application:\nhttp://localhost:" + serverPort);
+		String magicLink = email.get("text").asText().split(":\n")[1];
+		page.navigate(magicLink);
+		assertThat(page.title()).isEqualTo("One-Time Token Login");
+		page.locator("button[type=submit]").press("Enter");
+	}
+
 	@Test
-	void contextLoads() {
+	void loginAsNonAdminUser() {
+		page.navigate("http://localhost:" + serverPort);
+		login("janesminth", "jane.smith@example.org");
+		assertThat(page.title()).isEqualTo("Account");
+		assertThat(page.locator("h3").textContent()).isEqualTo("Account Information");
+		assertThat(page.locator("div.account-field").count()).isEqualTo(3);
+		assertThat(page.locator("div.account-field").nth(0).locator("div.field-value").textContent())
+			.isEqualTo("janesminth");
+		assertThat(page.locator("div.account-field").nth(1).locator("div.field-value").textContent())
+			.isEqualTo("Jane Smith");
+		Locator accountField2 = page.locator("div.account-field").nth(2);
+		assertThat(accountField2.locator("div.email-item").count()).isEqualTo(2);
+		assertThat(accountField2.locator("div.email-item").nth(0).locator("span.email-address").textContent())
+			.isEqualTo("jane.smith@example.org");
+		assertThat(accountField2.locator("div.email-item").nth(0).locator("span.primary-badge").textContent())
+			.isEqualTo("Primary");
+		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.email-address").textContent())
+			.isEqualTo("jane@example.com");
+		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.primary-badge").count()).isEqualTo(0);
 	}
 
 }
