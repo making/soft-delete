@@ -99,10 +99,10 @@ class SoftDeleteApplicationTests {
 	void loginAsNonAdminUser() {
 		// Navigate to login page
 		page.navigate("http://localhost:" + serverPort);
-		
+
 		// Login with existing user
 		login("janesminth", "jane.smith@example.org");
-		
+
 		// Verify successful login and account page display
 		assertThat(page.title()).isEqualTo("Account");
 		assertThat(page.locator("h3").textContent()).isEqualTo("Account Information");
@@ -120,6 +120,9 @@ class SoftDeleteApplicationTests {
 		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.email-address").textContent())
 			.isEqualTo("jane@example.com");
 		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.primary-badge").count()).isEqualTo(0);
+
+		// Verify Admin Dashboard button is NOT present for non-admin user
+		assertThat(page.locator("button:has-text('Admin Dashboard')").count()).isEqualTo(0);
 	}
 
 	@Test
@@ -190,6 +193,59 @@ class SoftDeleteApplicationTests {
 			.isEqualTo(testEmail);
 		assertThat(emailField.locator("div.email-item").nth(0).locator("span.primary-badge").textContent())
 			.isEqualTo("Primary");
+	}
+
+	@Test
+	void loginAsAdminUserAndViewDashboard() {
+		// Navigate to login page
+		page.navigate("http://localhost:" + serverPort);
+
+		// Login with admin user
+		login("johndoe", "john.doe.work@example.org");
+
+		// Verify successful login and account page display
+		assertThat(page.title()).isEqualTo("Account");
+
+		// Verify Admin Dashboard button is present for admin user
+		assertThat(page.locator("button:has-text('Admin Dashboard')").count()).isEqualTo(1);
+
+		// Navigate to admin dashboard by clicking the button
+		page.locator("button:has-text('Admin Dashboard')").click();
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Admin Dashboard");
+
+		// Verify tab navigation is present
+		assertThat(page.locator(".tab-navigation").count()).isEqualTo(1);
+		assertThat(page.locator(".tab-link").count()).isEqualTo(3);
+		assertThat(page.locator(".tab-link").nth(0).textContent().trim()).isEqualTo("Active Users");
+		assertThat(page.locator(".tab-link").nth(1).textContent().trim()).isEqualTo("Pending Users");
+		assertThat(page.locator(".tab-link").nth(2).textContent().trim()).isEqualTo("Deleted Users");
+
+		// Verify active tab is selected by default
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Active Users");
+
+		// Verify active users tab content
+		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Active Users");
+		assertThat(page.locator(".user-card").count()).isGreaterThan(0);
+
+		// Verify user card structure for the first user
+		Locator firstUserCard = page.locator(".user-card").first();
+		assertThat(firstUserCard.locator(".user-field").count()).isEqualTo(4); // User ID,
+																				// Username,
+																				// Display
+																				// Name,
+																				// Emails
+
+		// Test navigation to pending users tab
+		page.locator(".tab-link").nth(1).click();
+		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Pending Users");
+
+		// Test navigation to deleted users tab
+		page.locator(".tab-link").nth(2).click();
+		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Deleted Users");
+
+		// Verify back to account button is present
+		assertThat(page.locator("button:has-text('Back to Account')").count()).isEqualTo(1);
 	}
 
 }
