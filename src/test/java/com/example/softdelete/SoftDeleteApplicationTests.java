@@ -124,6 +124,13 @@ class SoftDeleteApplicationTests {
 
 		// Verify Admin Dashboard button is NOT present for non-admin user
 		assertThat(page.getByText("Admin Dashboard").count()).isEqualTo(0);
+
+		// Verify non-admin user cannot access admin dashboard directly via URL
+		page.navigate("http://localhost:" + serverPort + "/admin");
+
+		// Access should be denied - verify specific error response
+		assertThat(page.title()).isEqualTo("Error");
+		assertThat(page.textContent("body")).contains("Forbidden");
 	}
 
 	@Test
@@ -767,6 +774,132 @@ class SoftDeleteApplicationTests {
 		String deletedAt = firstDeletedCard.locator(".user-field").nth(1).locator(".field-value").textContent();
 		assertThat(deletedAt).contains(String.valueOf(LocalDate.now().getYear())); // Current
 																					// year
+	}
+
+	@Test
+	void testAdminPromoteUserAndAccess() {
+		// First, create a new user to promote
+		// Navigate to signup page
+		page.navigate("http://localhost:" + serverPort + "/signup");
+		assertThat(page.title()).isEqualTo("Sign up");
+
+		// Fill signup form with test data
+		String testUsername = "usertopromote";
+		String testDisplayName = "User To Promote";
+		String testEmail = "usertopromote@example.org";
+
+		page.locator("#ott-username").fill(testUsername);
+		page.locator("#ott-displayName").fill(testDisplayName);
+		page.locator("#ott-email").fill(testEmail);
+
+		// Submit signup form
+		page.locator("button[type=submit]").press("Enter");
+
+		// Verify redirect to success page
+		assertThat(page.title()).isEqualTo("Account Registration");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Check your email to activate the account.");
+
+		// Check activation email was sent
+		ResponseEntity<JsonNode> emailsResponse = restClient.get()
+			.uri("http://127.0.0.1:" + maildevPort + "/email")
+			.retrieve()
+			.toEntity(JsonNode.class);
+		assertThat(emailsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+		JsonNode emails = emailsResponse.getBody();
+		assertThat(emails).isNotNull();
+		assertThat(emails.size()).isEqualTo(1);
+
+		JsonNode activationEmail = emails.get(0);
+		assertThat(activationEmail.get("subject").asText()).isEqualTo("Activate your account");
+
+		// Extract activation link and activate account
+		String emailText = activationEmail.get("text").asText();
+		String activationLink = emailText.split("Please activate your account by clicking the following link:\n")[1]
+			.split("\n\n")[0];
+		page.navigate(activationLink);
+
+		// Verify successful activation
+		assertThat(page.title()).isEqualTo("Successfully activated!");
+
+		// Clear emails
+		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+
+		// Now login as admin user
+		page.navigate("http://localhost:" + serverPort + "/login");
+		login("johndoe", "john.doe.work@example.org");
+
+		// Navigate to admin dashboard
+		page.getByText("Admin Dashboard").click();
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+
+		// Verify the new user appears in Active Users tab (should be first due to highest
+		// ID)
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Active Users");
+		assertThat(page.locator(".user-card").count()).isGreaterThan(0);
+
+		// Find the newly created user (should be first due to highest ID)
+		Locator firstUserCard = page.locator(".user-card").first();
+		assertThat(firstUserCard.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo(testUsername);
+		assertThat(firstUserCard.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo(testDisplayName);
+
+		// Get the user ID before promoting
+		String userIdToPromote = firstUserCard.locator(".user-field").nth(0).locator(".field-value").textContent();
+
+		// Click Promote to Admin button
+		firstUserCard.getByText("Promote to Admin").click();
+
+		// Verify promote confirmation page
+		assertThat(page.title()).isEqualTo("Promote to Admin");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Promote to Admin");
+		assertThat(page.locator("p.message").first().textContent())
+			.contains("Are you sure you want to promote this user to admin?");
+
+		// Confirm promotion
+		page.getByText("Yes, Promote to Admin").click();
+
+		// Verify redirect back to admin dashboard
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Active Users");
+
+		// Verify the promoted user no longer has "Promote to Admin" button
+		// Find the user again (still should be first)
+		Locator promotedUserCard = page.locator(".user-card").first();
+		assertThat(promotedUserCard.locator(".user-field").nth(0).locator(".field-value").textContent())
+			.isEqualTo(userIdToPromote);
+		assertThat(promotedUserCard.getByText("Promote to Admin").count()).isEqualTo(0);
+
+		// Logout as admin
+		page.navigate("http://localhost:" + serverPort + "/logout");
+
+		// Clear emails before new login
+		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+
+		// Login as the newly promoted user
+		page.navigate("http://localhost:" + serverPort + "/login");
+		login(testUsername, testEmail);
+
+		// Verify successful login
+		assertThat(page.title()).isEqualTo("Account");
+		assertThat(page.locator("h3").textContent()).isEqualTo("Account Information");
+
+		// Verify Admin Dashboard button is present for newly promoted admin
+		assertThat(page.getByText("Admin Dashboard").count()).isEqualTo(1);
+
+		// Navigate to admin dashboard
+		page.getByText("Admin Dashboard").click();
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Admin Dashboard");
+
+		// Verify the promoted user can see all tabs
+		assertThat(page.locator(".tab-link").count()).isEqualTo(3);
+		assertThat(page.locator(".tab-link").nth(0).textContent().trim()).isEqualTo("Active Users");
+		assertThat(page.locator(".tab-link").nth(1).textContent().trim()).isEqualTo("Pending Users");
+		assertThat(page.locator(".tab-link").nth(2).textContent().trim()).isEqualTo("Deleted Users");
+
+		// Verify can view active users
+		assertThat(page.locator(".user-card").count()).isGreaterThan(0);
 	}
 
 }
