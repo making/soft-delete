@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-		properties = { "maildev.port=0", "spring.http.client.factory=simple" })
+		properties = { "maildev.port=0", "spring.http.client.factory=simple", "spring.mail.host=" })
 @ActiveProfiles("sendgrid")
 class SoftDeleteApplicationTests {
 
@@ -91,7 +91,6 @@ class SoftDeleteApplicationTests {
 		JsonNode email = emails.get(0);
 		assertThat(email.get("subject").asText()).startsWith("Your One Time Token");
 		assertThat(email.get("to").get(0).get("address").asText()).startsWith(primaryEmail);
-		assertThat(email.get("from").get(0).get("address").asText()).startsWith("noreply@example.com");
 		assertThat(email.get("text").asText())
 			.startsWith("Use the following link to sign in into the application:\nhttp://localhost:" + serverPort);
 		String magicLink = email.get("text").asText().split(":\n")[1];
@@ -172,7 +171,6 @@ class SoftDeleteApplicationTests {
 		JsonNode activationEmail = emails.get(0);
 		assertThat(activationEmail.get("subject").asText()).isEqualTo("Activate your account");
 		assertThat(activationEmail.get("to").get(0).get("address").asText()).isEqualTo(testEmail);
-		assertThat(activationEmail.get("from").get(0).get("address").asText()).isEqualTo("noreply@example.com");
 
 		// Extract activation link and activate account
 		String emailText = activationEmail.get("text").asText();

@@ -26,14 +26,14 @@ class TestcontainersConfiguration {
 	}
 
 	@SuppressWarnings("resource")
-	@Profile("sendgrid")
+	@Profile({ "sendgrid", "mail" })
 	@Bean
-	FixedHostPortGenericContainer<?> sendgrid(@Value("${maildev.port:31080}") int maildevPort) {
+	FixedHostPortGenericContainer<?> sendgridMaildev(@Value("${maildev.port:31080}") int maildevPort) {
 		var container = new FixedHostPortGenericContainer<>("ykanazawa/sendgrid-maildev")
 			.withEnv("SENDGRID_DEV_API_SERVER", ":3030")
 			.withEnv("SENDGRID_DEV_API_KEY", "SG.test")
 			.withEnv("SENDGRID_DEV_SMTP_SERVER", "127.0.0.1:1025")
-			.withExposedPorts(3030, 1080)
+			.withExposedPorts(3030, 1080, 1025)
 			.waitingFor(new LogMessageWaitStrategy().withRegEx(".*sendgrid-dev entered RUNNING state.*")
 				.withStartupTimeout(Duration.of(60, ChronoUnit.SECONDS)))
 			.withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("sendgrid-maildev")));
@@ -42,11 +42,21 @@ class TestcontainersConfiguration {
 
 	@Profile("sendgrid")
 	@Bean
-	DynamicPropertyRegistrar dynamicPropertyRegistrar(GenericContainer<?> sendgrid) {
+	DynamicPropertyRegistrar dynamicSendGridPropertyRegistrar(GenericContainer<?> sendgridMaildev) {
 		return registry -> {
-			registry.add("sendgrid.base-url", () -> "http://127.0.0.1:" + sendgrid.getMappedPort(3030));
+			registry.add("sendgrid.base-url", () -> "http://127.0.0.1:" + sendgridMaildev.getMappedPort(3030));
 			registry.add("sendgrid.api-key", () -> "SG.test");
-			registry.add("maildev.port", () -> sendgrid.getMappedPort(1080));
+			registry.add("maildev.port", () -> sendgridMaildev.getMappedPort(1080));
+		};
+	}
+
+	@Profile("mail")
+	@Bean
+	DynamicPropertyRegistrar dynamicMailPropertyRegistrar(GenericContainer<?> sendgridMaildev) {
+		return registry -> {
+			registry.add("spring.mail.host", () -> "localhost");
+			registry.add("spring.mail.port", () -> sendgridMaildev.getMappedPort(1025));
+			registry.add("maildev.port", () -> sendgridMaildev.getMappedPort(1080));
 		};
 	}
 
