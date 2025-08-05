@@ -122,7 +122,7 @@ class SoftDeleteApplicationTests {
 		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.primary-badge").count()).isEqualTo(0);
 
 		// Verify Admin Dashboard button is NOT present for non-admin user
-		assertThat(page.locator("button:has-text('Admin Dashboard')").count()).isEqualTo(0);
+		assertThat(page.getByText("Admin Dashboard").count()).isEqualTo(0);
 	}
 
 	@Test
@@ -205,12 +205,30 @@ class SoftDeleteApplicationTests {
 
 		// Verify successful login and account page display
 		assertThat(page.title()).isEqualTo("Account");
+		assertThat(page.locator("h3").textContent()).isEqualTo("Account Information");
+		assertThat(page.locator("div.account-field").count()).isEqualTo(3);
+		assertThat(page.locator("div.account-field").nth(0).locator("div.field-value").textContent())
+			.isEqualTo("johndoe");
+		assertThat(page.locator("div.account-field").nth(1).locator("div.field-value").textContent())
+			.isEqualTo("John Doe");
+		Locator accountField2 = page.locator("div.account-field").nth(2);
+		assertThat(accountField2.locator("div.email-item").count()).isEqualTo(3);
+		assertThat(accountField2.locator("div.email-item").nth(0).locator("span.email-address").textContent())
+			.isEqualTo("john.doe.work@example.org");
+		assertThat(accountField2.locator("div.email-item").nth(0).locator("span.primary-badge").textContent())
+			.isEqualTo("Primary");
+		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.email-address").textContent())
+			.isEqualTo("john.doe@example.com");
+		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.primary-badge").count()).isEqualTo(0);
+		assertThat(accountField2.locator("div.email-item").nth(2).locator("span.email-address").textContent())
+			.isEqualTo("j.doe@example.net");
+		assertThat(accountField2.locator("div.email-item").nth(2).locator("span.primary-badge").count()).isEqualTo(0);
 
 		// Verify Admin Dashboard button is present for admin user
-		assertThat(page.locator("button:has-text('Admin Dashboard')").count()).isEqualTo(1);
+		assertThat(page.getByText("Admin Dashboard").count()).isEqualTo(1);
 
 		// Navigate to admin dashboard by clicking the button
-		page.locator("button:has-text('Admin Dashboard')").click();
+		page.getByText("Admin Dashboard").click();
 		assertThat(page.title()).isEqualTo("Admin Dashboard");
 		assertThat(page.locator("h3.header").textContent()).isEqualTo("Admin Dashboard");
 
@@ -245,7 +263,7 @@ class SoftDeleteApplicationTests {
 		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Deleted Users");
 
 		// Verify back to account button is present
-		assertThat(page.locator("button:has-text('Back to Account')").count()).isEqualTo(1);
+		assertThat(page.getByText("Back to Account").count()).isEqualTo(1);
 	}
 
 }
