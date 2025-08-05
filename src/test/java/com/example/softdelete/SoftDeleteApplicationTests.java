@@ -367,4 +367,131 @@ class SoftDeleteApplicationTests {
 		assertThat(page.getByText("Back to Account").count()).isEqualTo(1);
 	}
 
+	@Test
+	void testActiveUsersPagination() {
+		// Navigate to login page
+		page.navigate("http://localhost:" + serverPort);
+
+		// Login with admin user
+		login("johndoe", "john.doe.work@example.org");
+
+		// Navigate to admin dashboard with pagination size=2
+		page.navigate("http://localhost:" + serverPort + "/admin?tab=active&size=2");
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Admin Dashboard");
+
+		// Verify active tab is selected
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Active Users");
+		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Active Users");
+
+		// Page 1: Verify first 2 users (ID 8, 7) are displayed
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		Locator user8Card = page.locator(".user-card").nth(0);
+		assertThat(user8Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("8");
+		assertThat(user8Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("lisawhite");
+
+		Locator user7Card = page.locator(".user-card").nth(1);
+		assertThat(user7Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("7");
+		assertThat(user7Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("tomtaylor");
+
+		// Verify pagination links - should have Next but no Previous (first page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 2: Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		Locator user6Card = page.locator(".user-card").nth(0);
+		assertThat(user6Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("6");
+		assertThat(user6Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("emilydavis");
+
+		Locator user5Card = page.locator(".user-card").nth(1);
+		assertThat(user5Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("5");
+		assertThat(user5Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("alexwilson");
+
+		// Verify both Previous and Next links are present
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 3: Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		Locator user4Card = page.locator(".user-card").nth(0);
+		assertThat(user4Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("4");
+		assertThat(user4Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("sarahjones");
+
+		Locator user3Card = page.locator(".user-card").nth(1);
+		assertThat(user3Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("3");
+		assertThat(user3Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("mikebrown");
+
+		// Verify both Previous and Next links are present
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 4 (Last page): Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		Locator user2Card = page.locator(".user-card").nth(0);
+		assertThat(user2Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("2");
+		assertThat(user2Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("janesminth");
+
+		Locator user1Card = page.locator(".user-card").nth(1);
+		assertThat(user1Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("1");
+		assertThat(user1Card.locator(".user-field").nth(1).locator(".field-value").textContent()).isEqualTo("johndoe");
+
+		// Verify only Previous link is present (last page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(0);
+
+		// Navigate back: Click Previous to Page 3
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		user4Card = page.locator(".user-card").nth(0);
+		assertThat(user4Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("4");
+		assertThat(user4Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("sarahjones");
+
+		user3Card = page.locator(".user-card").nth(1);
+		assertThat(user3Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("3");
+		assertThat(user3Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("mikebrown");
+
+		// Navigate back: Click Previous to Page 2
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		user6Card = page.locator(".user-card").nth(0);
+		assertThat(user6Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("6");
+		assertThat(user6Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("emilydavis");
+
+		user5Card = page.locator(".user-card").nth(1);
+		assertThat(user5Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("5");
+		assertThat(user5Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("alexwilson");
+
+		// Navigate back: Click Previous to Page 1 (First page)
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(2);
+		user8Card = page.locator(".user-card").nth(0);
+		assertThat(user8Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("8");
+		assertThat(user8Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("lisawhite");
+
+		user7Card = page.locator(".user-card").nth(1);
+		assertThat(user7Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("7");
+		assertThat(user7Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("tomtaylor");
+
+		// Verify only Next link is present (back to first page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+	}
+
 }
