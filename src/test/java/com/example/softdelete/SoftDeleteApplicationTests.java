@@ -132,9 +132,9 @@ class SoftDeleteApplicationTests {
 		assertThat(page.title()).isEqualTo("Sign up");
 
 		// Fill signup form
-		String testUsername = "newuser" + System.currentTimeMillis();
+		String testUsername = "newuser";
 		String testDisplayName = "New User";
-		String testEmail = "newuser" + System.currentTimeMillis() + "@example.org";
+		String testEmail = "newuser@example.org";
 
 		page.locator("#ott-username").fill(testUsername);
 		page.locator("#ott-displayName").fill(testDisplayName);
@@ -488,6 +488,156 @@ class SoftDeleteApplicationTests {
 		assertThat(user7Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("7");
 		assertThat(user7Card.locator(".user-field").nth(1).locator(".field-value").textContent())
 			.isEqualTo("tomtaylor");
+
+		// Verify only Next link is present (back to first page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+	}
+
+	@Test
+	void testPendingUsersPagination() {
+		// Navigate to login page
+		page.navigate("http://localhost:" + serverPort);
+
+		// Login with admin user
+		login("johndoe", "john.doe.work@example.org");
+
+		// Navigate to admin dashboard pending users tab with pagination size=1
+		page.navigate("http://localhost:" + serverPort + "/admin?tab=pending&size=1");
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Admin Dashboard");
+
+		// Verify pending tab is selected
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Pending Users");
+		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Pending Users");
+
+		// Page 1: Verify first pending user (ID 14) is displayed (highest ID first)
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		Locator user14Card = page.locator(".user-card").nth(0);
+		assertThat(user14Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("14");
+		assertThat(user14Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("pendinguser2");
+		assertThat(user14Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Pending User Two");
+
+		// Verify pagination links - should have Next but no Previous (first page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 2: Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		Locator user13Card = page.locator(".user-card").nth(0);
+		assertThat(user13Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("13");
+		assertThat(user13Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("pendinguser1");
+		assertThat(user13Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Pending User One");
+
+		// Verify only Previous link is present (last page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(0);
+
+		// Navigate back: Click Previous to Page 1
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		user14Card = page.locator(".user-card").nth(0);
+		assertThat(user14Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("14");
+		assertThat(user14Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("pendinguser2");
+
+		// Verify only Next link is present (back to first page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+	}
+
+	@Test
+	void testDeletedUsersPagination() {
+		// Navigate to login page
+		page.navigate("http://localhost:" + serverPort);
+
+		// Login with admin user
+		login("johndoe", "john.doe.work@example.org");
+
+		// Navigate to admin dashboard deleted users tab with pagination size=1
+		page.navigate("http://localhost:" + serverPort + "/admin?tab=deleted&size=1");
+		assertThat(page.title()).isEqualTo("Admin Dashboard");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Admin Dashboard");
+
+		// Verify deleted tab is selected
+		assertThat(page.locator(".tab-link.active").textContent().trim()).isEqualTo("Deleted Users");
+		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Deleted Users");
+
+		// Page 1: Verify first deleted user (ID 12) is displayed (highest ID first)
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		Locator user12Card = page.locator(".user-card").nth(0);
+		assertThat(user12Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("12");
+		assertThat(user12Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-02T14:30Z");
+
+		// Verify pagination links - should have Next but no Previous (first page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 2: Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		Locator user11Card = page.locator(".user-card").nth(0);
+		assertThat(user11Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("11");
+		assertThat(user11Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-01T10:00Z");
+
+		// Verify both Previous and Next links are present
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 3: Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		Locator user10Card = page.locator(".user-card").nth(0);
+		assertThat(user10Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("10");
+		assertThat(user10Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-04T11:45Z");
+
+		// Verify both Previous and Next links are present
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(1);
+
+		// Navigate to Page 4 (Last page): Click Next
+		page.getByText("Next →").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		Locator user9Card = page.locator(".user-card").nth(0);
+		assertThat(user9Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("9");
+		assertThat(user9Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-03T09:15Z");
+
+		// Verify only Previous link is present (last page)
+		assertThat(page.getByText("← Previous").count()).isEqualTo(1);
+		assertThat(page.getByText("Next →").count()).isEqualTo(0);
+
+		// Navigate back: Click Previous to Page 3
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		user10Card = page.locator(".user-card").nth(0);
+		assertThat(user10Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("10");
+		assertThat(user10Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-04T11:45Z");
+
+		// Navigate back: Click Previous to Page 2
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		user11Card = page.locator(".user-card").nth(0);
+		assertThat(user11Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("11");
+		assertThat(user11Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-01T10:00Z");
+
+		// Navigate back: Click Previous to Page 1 (First page)
+		page.getByText("← Previous").click();
+		assertThat(page.locator(".user-card").count()).isEqualTo(1);
+		user12Card = page.locator(".user-card").nth(0);
+		assertThat(user12Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("12");
+		assertThat(user12Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("2024-02-02T14:30Z");
 
 		// Verify only Next link is present (back to first page)
 		assertThat(page.getByText("← Previous").count()).isEqualTo(0);
