@@ -1,4 +1,4 @@
-package com.example.softdelete.sendgrid;
+package com.example.softdelete.notification.sendgrid;
 
 import com.example.softdelete.notification.Notification;
 import com.example.softdelete.notification.NotificationSender;

@@ -1,4 +1,4 @@
-package com.example.softdelete.sendgrid;
+package com.example.softdelete.notification.sendgrid;
 
 import java.net.URI;
 import org.springframework.boot.context.properties.ConfigurationProperties;
