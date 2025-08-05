@@ -1,5 +1,7 @@
-package com.example.softdelete.notification;
+package com.example.softdelete.notification.console;
 
+import com.example.softdelete.notification.Notification;
+import com.example.softdelete.notification.NotificationSender;
 import org.springframework.context.annotation.Fallback;
 import org.springframework.stereotype.Component;
 
