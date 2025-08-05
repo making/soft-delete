@@ -100,10 +100,7 @@ public class UserMapper {
 				INSERT INTO user_emails (user_id, email) VALUES (:userId, :email)
 				""").param("userId", userId).param("email", email.email()).update();
 		if (email.isPrimary()) {
-			this.jdbcClient.sql("""
-					INSERT INTO user_primary_emails (user_id, email) VALUES (:userId, :email)
-					ON CONFLICT (user_id) DO UPDATE SET email = :email
-					""").param("userId", userId).param("email", email.email()).update();
+			this.updatePrimaryEmail(userId, email.email());
 		}
 	}
 
@@ -115,6 +112,27 @@ public class UserMapper {
 		this.jdbcClient.sql("""
 				DELETE FROM user_emails WHERE user_id = :userId
 				""").param("userId", userId).update();
+	}
+
+	@Transactional
+	public int deleteUserEmail(long userId, String email) {
+		return this.jdbcClient.sql("""
+				DELETE FROM user_emails WHERE user_id = :userId AND email = :email
+				""").param("userId", userId).param("email", email).update();
+	}
+
+	public boolean existsUserEmail(String email) {
+		return this.jdbcClient.sql("""
+				SELECT COUNT(*) FROM user_emails WHERE email = :email
+				""").param("email", email).query(Integer.class).single() > 0;
+	}
+
+	@Transactional
+	public void updatePrimaryEmail(long userId, String email) {
+		this.jdbcClient.sql("""
+				INSERT INTO user_primary_emails (user_id, email) VALUES (:userId, :email)
+				ON CONFLICT (user_id) DO UPDATE SET email = :email
+				""").param("userId", userId).param("email", email).update();
 	}
 
 	@Transactional

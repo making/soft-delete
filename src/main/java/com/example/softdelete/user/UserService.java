@@ -152,6 +152,80 @@ public class UserService {
 		return new DeletedUser(activeUser.userId(), now);
 	}
 
+	@Transactional
+	public ActiveUser addEmail(long userId, Email email) {
+		User user = this.userMapper.findUser(userId).orElseThrow(() -> new UserException("User not found: " + userId));
+		if (!(user instanceof ActiveUser)) {
+			throw new UserException("User is not active: " + userId);
+		}
+
+		if (this.userMapper.existsUserEmail(email.email())) {
+			throw new UserException("Email already used: " + email.email());
+		}
+
+		// Insert email as non-primary initially
+		Email newEmail = new Email(email.email(), false);
+		this.userMapper.insertUserEmail(userId, newEmail);
+
+		if (email.isPrimary()) {
+			this.userMapper.updatePrimaryEmail(userId, email.email());
+		}
+
+		// Return updated user
+		return (ActiveUser) this.userMapper.findUser(userId)
+			.orElseThrow(() -> new UserException("User not found after update: " + userId));
+	}
+
+	@Transactional
+	public ActiveUser removeEmail(long userId, String email) {
+		User user = this.userMapper.findUser(userId).orElseThrow(() -> new UserException("User not found: " + userId));
+		if (!(user instanceof ActiveUser activeUser)) {
+			throw new UserException("User is not active: " + userId);
+		}
+
+		// Check if email exists for this user
+		boolean emailExists = activeUser.emails().stream().anyMatch(e -> e.email().equals(email));
+		if (!emailExists) {
+			throw new UserException("Email not found: " + email);
+		}
+
+		// Check if this is the primary email
+		if (email.equals(activeUser.primaryEmail())) {
+			throw new UserException("Cannot delete primary email. Please set another email as primary first.");
+		}
+
+		// Check if user has more than one email
+		if (activeUser.emails().size() <= 1) {
+			throw new UserException("Cannot delete the only email address.");
+		}
+
+		this.userMapper.deleteUserEmail(userId, email);
+
+		// Return updated user
+		return (ActiveUser) this.userMapper.findUser(userId)
+			.orElseThrow(() -> new UserException("User not found after update: " + userId));
+	}
+
+	@Transactional
+	public ActiveUser setPrimaryEmail(long userId, String email) {
+		User user = this.userMapper.findUser(userId).orElseThrow(() -> new UserException("User not found: " + userId));
+		if (!(user instanceof ActiveUser)) {
+			throw new UserException("User is not active: " + userId);
+		}
+
+		// Check if email exists for this user
+		boolean emailExists = ((ActiveUser) user).emails().stream().anyMatch(e -> e.email().equals(email));
+		if (!emailExists) {
+			throw new UserException("Email not found: " + email);
+		}
+
+		this.userMapper.updatePrimaryEmail(userId, email);
+
+		// Return updated user
+		return (ActiveUser) this.userMapper.findUser(userId)
+			.orElseThrow(() -> new UserException("User not found after update: " + userId));
+	}
+
 	public record UserRegistration(String email, String username, String displayName) {
 	}
 

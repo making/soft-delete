@@ -2,8 +2,10 @@ package com.example.softdelete.user.web;
 
 import com.example.softdelete.security.ActiveUserDetails;
 import com.example.softdelete.user.ActiveUser;
+import com.example.softdelete.user.Email;
 import com.example.softdelete.user.UserService;
 import java.util.UUID;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -28,8 +30,15 @@ public class UserController {
 	}
 
 	@GetMapping(path = "/account")
-	public String showUserAccount(@AuthenticationPrincipal ActiveUserDetails userDetails, Model model) {
+	public String showUserAccount(@AuthenticationPrincipal ActiveUserDetails userDetails, Model model,
+			@RequestParam(required = false) String emailError, @RequestParam(required = false) String emailSuccess) {
 		model.addAttribute("user", userDetails.getActiveUser());
+		if (emailError != null) {
+			model.addAttribute("emailError", emailError);
+		}
+		if (emailSuccess != null) {
+			model.addAttribute("emailSuccess", emailSuccess);
+		}
 		return "user-account";
 	}
 
@@ -84,6 +93,68 @@ public class UserController {
 	public String showGoodbye() {
 		SecurityContextHolder.getContext().setAuthentication(null);
 		return "goodbye";
+	}
+
+	@PostMapping(path = "/account/add-email")
+	public String addEmail(@AuthenticationPrincipal ActiveUserDetails userDetails, @RequestParam String email,
+			@RequestParam(required = false) boolean isPrimary) {
+		try {
+			ActiveUser activeUser = userDetails.getActiveUser();
+			Email emailToAdd = new Email(email, isPrimary);
+			ActiveUser updatedUser = this.userService.addEmail(activeUser.userId(), emailToAdd);
+
+			// Update security context with updated user information
+			ActiveUserDetails updatedUserDetails = new ActiveUserDetails(updatedUser);
+			UsernamePasswordAuthenticationToken updatedAuth = new UsernamePasswordAuthenticationToken(
+					updatedUserDetails, null, updatedUserDetails.getAuthorities());
+			SecurityContextHolder.getContext().setAuthentication(updatedAuth);
+
+			return "redirect:/account?emailSuccess=Email+address+added+successfully";
+		}
+		catch (UserService.UserException e) {
+			return "redirect:/account?emailError=" + e.getMessage().replace(" ", "+");
+		}
+	}
+
+	@PostMapping(path = "/account/remove-email")
+	public String removeEmail(@AuthenticationPrincipal ActiveUserDetails userDetails, @RequestParam String email) {
+		try {
+			ActiveUser activeUser = userDetails.getActiveUser();
+			ActiveUser updatedUser = this.userService.removeEmail(activeUser.userId(), email);
+
+			// Update security context with updated user information
+			ActiveUserDetails updatedUserDetails = new ActiveUserDetails(updatedUser);
+			UsernamePasswordAuthenticationToken updatedAuth = new UsernamePasswordAuthenticationToken(
+					updatedUserDetails, null, updatedUserDetails.getAuthorities());
+			SecurityContextHolder.getContext().setAuthentication(updatedAuth);
+
+			return "redirect:/account?emailSuccess=Email+address+removed+successfully";
+		}
+		catch (UserService.UserException e) {
+			return "redirect:/account?emailError=" + e.getMessage().replace(" ", "+");
+		}
+	}
+
+	@PostMapping(path = "/account/set-primary-email")
+	public String setPrimaryEmail(@AuthenticationPrincipal ActiveUserDetails userDetails, @RequestParam String email) {
+		try {
+			ActiveUser activeUser = userDetails.getActiveUser();
+			ActiveUser updatedUser = this.userService.setPrimaryEmail(activeUser.userId(), email);
+
+			// Update security context with updated user information
+			ActiveUserDetails updatedUserDetails = new ActiveUserDetails(updatedUser);
+			UsernamePasswordAuthenticationToken updatedAuth = new UsernamePasswordAuthenticationToken(
+					updatedUserDetails, null, updatedUserDetails.getAuthorities());
+			SecurityContextHolder.getContext().setAuthentication(updatedAuth);
+
+			return "redirect:/account?emailSuccess=Primary+email+updated+successfully";
+		}
+		catch (UserService.UserException e) {
+			return "redirect:/account?emailError=" + e.getMessage().replace(" ", "+");
+		}
+	}
+
+	record AddEmailRequest(String email, boolean isPrimary) {
 	}
 
 }

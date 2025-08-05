@@ -28,14 +28,63 @@
       <div class="field-value">
         {{#user.emails}}
           <div class="email-item">
-            <span class="email-address">{{email}}</span>
-            {{#isPrimary}}
-              <span class="primary-badge">Primary</span>
-            {{/isPrimary}}
+            <div class="email-info">
+              <span class="email-address">{{email}}</span>
+              {{#isPrimary}}
+                <span class="primary-badge">Primary</span>
+              {{/isPrimary}}
+            </div>
+            <div class="email-actions">
+              {{^isPrimary}}
+                <form action="/account/set-primary-email" method="post" style="display: inline;">
+                  {{#_csrf}}
+                    <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+                  {{/_csrf}}
+                  <input type="hidden" name="email" value="{{email}}"/>
+                  <button type="submit" class="styled-button secondary email-action-btn">Set Primary</button>
+                </form>
+                <form action="/account/remove-email" method="post" style="display: inline;">
+                  {{#_csrf}}
+                    <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+                  {{/_csrf}}
+                  <input type="hidden" name="email" value="{{email}}"/>
+                  <button type="submit" class="styled-button danger email-action-btn" onclick="return confirm('Are you sure you want to remove this email address?')">Remove</button>
+                </form>
+              {{/isPrimary}}
+            </div>
           </div>
         {{/user.emails}}
       </div>
     </div>
+  </div>
+
+  <!-- Add Email Form -->
+  <div class="account-section">
+    <h4 class="section-header">Add New Email Address</h4>
+    {{#emailError}}
+      <div class="error-message">{{emailError}}</div>
+    {{/emailError}}
+    {{#emailSuccess}}
+      <div class="success-message">{{emailSuccess}}</div>
+    {{/emailSuccess}}
+    <form action="/account/add-email" method="post" class="add-email-form">
+      {{#_csrf}}
+        <input type="hidden" name="_csrf" value="{{_csrf.token}}"/>
+      {{/_csrf}}
+      <div class="form-group">
+        <label for="email" class="field-label">New Email Address</label>
+        <input type="email" id="email" name="email" class="input-field" required/>
+      </div>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" name="isPrimary" value="true"/>
+          Set as primary email address
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="styled-button">Add Email</button>
+      </div>
+    </form>
   </div>
 
   <div class="account-actions">
