@@ -67,6 +67,7 @@ class SoftDeleteApplicationTests {
 
 	@AfterEach
 	void tearDown() {
+		this.restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
 		this.context.close();
 	}
 
@@ -114,6 +115,76 @@ class SoftDeleteApplicationTests {
 		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.email-address").textContent())
 			.isEqualTo("jane@example.com");
 		assertThat(accountField2.locator("div.email-item").nth(1).locator("span.primary-badge").count()).isEqualTo(0);
+	}
+
+	@Test
+	void signupNewUserAndLogin() {
+		// Navigate to signup page
+		page.navigate("http://localhost:" + serverPort + "/signup");
+		assertThat(page.title()).isEqualTo("Sign up");
+
+		// Fill signup form
+		String testUsername = "newuser" + System.currentTimeMillis();
+		String testDisplayName = "New User";
+		String testEmail = "newuser" + System.currentTimeMillis() + "@example.org";
+
+		page.locator("#ott-username").fill(testUsername);
+		page.locator("#ott-displayName").fill(testDisplayName);
+		page.locator("#ott-email").fill(testEmail);
+
+		// Submit signup form
+		page.locator("button[type=submit]").press("Enter");
+
+		// Verify redirect to success page
+		assertThat(page.title()).isEqualTo("Account Registration");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Check your email to activate the account.");
+
+		// Check activation email was sent
+		ResponseEntity<JsonNode> emailsResponse = restClient.get()
+			.uri("http://127.0.0.1:" + maildevPort + "/email")
+			.retrieve()
+			.toEntity(JsonNode.class);
+		assertThat(emailsResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+		JsonNode emails = emailsResponse.getBody();
+		assertThat(emails).isNotNull();
+		assertThat(emails.size()).isEqualTo(1);
+
+		JsonNode activationEmail = emails.get(0);
+		assertThat(activationEmail.get("subject").asText()).isEqualTo("Activate your account");
+		assertThat(activationEmail.get("to").get(0).get("address").asText()).isEqualTo(testEmail);
+		assertThat(activationEmail.get("from").get(0).get("address").asText()).isEqualTo("noreply@example.com");
+
+		// Extract activation link and activate account
+		String emailText = activationEmail.get("text").asText();
+		assertThat(emailText).contains("http://localhost:" + serverPort + "/activation");
+		String activationLink = emailText.split("Please activate your account by clicking the following link:\n")[1]
+			.split("\n\n")[0];
+		page.navigate(activationLink);
+
+		// Verify successful activation
+		assertThat(page.title()).isEqualTo("Successfully activated!");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Successfully activated!");
+		// Clear emails for login test
+		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+
+		// Now try to login with the newly created user
+		page.navigate("http://localhost:" + serverPort + "/login");
+		login(testUsername, testEmail);
+
+		// Verify successful login and account page display
+		assertThat(page.title()).isEqualTo("Account");
+		assertThat(page.locator("h3").textContent()).isEqualTo("Account Information");
+		assertThat(page.locator("div.account-field").count()).isEqualTo(3);
+		assertThat(page.locator("div.account-field").nth(0).locator("div.field-value").textContent())
+			.isEqualTo(testUsername);
+		assertThat(page.locator("div.account-field").nth(1).locator("div.field-value").textContent())
+			.isEqualTo(testDisplayName);
+		Locator emailField = page.locator("div.account-field").nth(2);
+		assertThat(emailField.locator("div.email-item").count()).isEqualTo(1);
+		assertThat(emailField.locator("div.email-item").nth(0).locator("span.email-address").textContent())
+			.isEqualTo(testEmail);
+		assertThat(emailField.locator("div.email-item").nth(0).locator("span.primary-badge").textContent())
+			.isEqualTo("Primary");
 	}
 
 }
