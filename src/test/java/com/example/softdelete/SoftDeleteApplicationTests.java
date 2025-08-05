@@ -68,8 +68,12 @@ class SoftDeleteApplicationTests {
 
 	@AfterEach
 	void tearDown() {
-		this.restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+		this.clearEmails();
 		this.context.close();
+	}
+
+	private void clearEmails() {
+		this.restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
 	}
 
 	private void login(String username, String primaryEmail) {
@@ -97,7 +101,7 @@ class SoftDeleteApplicationTests {
 	}
 
 	@Test
-	void loginAsNonAdminUser() {
+	void testLoginAsNonAdminUser() {
 		// Navigate to login page
 		page.navigate("http://localhost:" + serverPort);
 
@@ -134,7 +138,7 @@ class SoftDeleteApplicationTests {
 	}
 
 	@Test
-	void signupNewUserAndLogin() {
+	void testSignupNewUserAndLogin() {
 		// Navigate to signup page
 		page.navigate("http://localhost:" + serverPort + "/signup");
 		assertThat(page.title()).isEqualTo("Sign up");
@@ -181,7 +185,7 @@ class SoftDeleteApplicationTests {
 		assertThat(page.title()).isEqualTo("Successfully activated!");
 		assertThat(page.locator("h3.header").textContent()).isEqualTo("Successfully activated!");
 		// Clear emails for login test
-		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+		clearEmails();
 
 		// Now try to login with the newly created user
 		page.navigate("http://localhost:" + serverPort + "/login");
@@ -216,7 +220,7 @@ class SoftDeleteApplicationTests {
 	}
 
 	@Test
-	void loginAsAdminUserAndViewDashboard() {
+	void testLoginAsAdminUserAndViewDashboard() {
 		// Navigate to login page
 		page.navigate("http://localhost:" + serverPort);
 
@@ -698,7 +702,7 @@ class SoftDeleteApplicationTests {
 		assertThat(page.title()).isEqualTo("Successfully activated!");
 
 		// Clear emails
-		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+		clearEmails();
 
 		// Now login as admin user
 		page.navigate("http://localhost:" + serverPort + "/login");
@@ -822,7 +826,7 @@ class SoftDeleteApplicationTests {
 		assertThat(page.title()).isEqualTo("Successfully activated!");
 
 		// Clear emails
-		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+		clearEmails();
 
 		// Now login as admin user
 		page.navigate("http://localhost:" + serverPort + "/login");
@@ -874,7 +878,7 @@ class SoftDeleteApplicationTests {
 		page.navigate("http://localhost:" + serverPort + "/logout");
 
 		// Clear emails before new login
-		restClient.delete().uri("http://127.0.0.1:" + maildevPort + "/email/all").retrieve().toBodilessEntity();
+		clearEmails();
 
 		// Login as the newly promoted user
 		page.navigate("http://localhost:" + serverPort + "/login");
