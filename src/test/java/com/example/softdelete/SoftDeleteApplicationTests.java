@@ -193,6 +193,18 @@ class SoftDeleteApplicationTests {
 			.isEqualTo(testEmail);
 		assertThat(emailField.locator("div.email-item").nth(0).locator("span.primary-badge").textContent())
 			.isEqualTo("Primary");
+
+		// Delete the newly created account to clean up for other tests
+		page.getByText("Delete Account").click();
+		assertThat(page.title()).isEqualTo("Delete Account");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Delete Account");
+		assertThat(page.locator("p.message").first().textContent())
+			.isEqualTo("Are you sure you want to delete your account?");
+		page.getByText("Yes, delete my account").click();
+		assertThat(page.title()).isEqualTo("Account Deleted");
+		assertThat(page.locator("h3.header").textContent()).isEqualTo("Account Deleted");
+		assertThat(page.locator("p.message").first().textContent())
+			.isEqualTo("Your account has been successfully deleted.");
 	}
 
 	@Test
@@ -244,15 +256,104 @@ class SoftDeleteApplicationTests {
 
 		// Verify active users tab content
 		assertThat(page.locator(".tab-content h4").textContent()).isEqualTo("Active Users");
-		assertThat(page.locator(".user-card").count()).isGreaterThan(0);
+		assertThat(page.locator(".user-card").count()).isEqualTo(8); // Exactly 8 active
+																		// users (1-8)
 
-		// Verify user card structure for the first user
-		Locator firstUserCard = page.locator(".user-card").first();
-		assertThat(firstUserCard.locator(".user-field").count()).isEqualTo(4); // User ID,
-																				// Username,
-																				// Display
-																				// Name,
-																				// Emails
+		// Verify detailed information for all active users (displayed in descending ID
+		// order)
+		// User 8: lisawhite (Non-Admin) - highest ID displayed first
+		Locator user8Card = page.locator(".user-card").nth(0);
+		assertThat(user8Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("8");
+		assertThat(user8Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("lisawhite");
+		assertThat(user8Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Lisa White");
+		assertThat(user8Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(1);
+		// Should have Promote to Admin button (not admin)
+		assertThat(user8Card.getByText("Promote to Admin").count()).isEqualTo(1);
+		assertThat(user8Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 7: tomtaylor (Non-Admin)
+		Locator user7Card = page.locator(".user-card").nth(1);
+		assertThat(user7Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("7");
+		assertThat(user7Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("tomtaylor");
+		assertThat(user7Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Tom Taylor");
+		assertThat(user7Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(1);
+		// Should have Promote to Admin button (not admin)
+		assertThat(user7Card.getByText("Promote to Admin").count()).isEqualTo(1);
+		assertThat(user7Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 6: emilydavis (Non-Admin)
+		Locator user6Card = page.locator(".user-card").nth(2);
+		assertThat(user6Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("6");
+		assertThat(user6Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("emilydavis");
+		assertThat(user6Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Emily Davis");
+		assertThat(user6Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(1);
+		// Should have Promote to Admin button (not admin)
+		assertThat(user6Card.getByText("Promote to Admin").count()).isEqualTo(1);
+		assertThat(user6Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 5: alexwilson (Non-Admin)
+		Locator user5Card = page.locator(".user-card").nth(3);
+		assertThat(user5Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("5");
+		assertThat(user5Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("alexwilson");
+		assertThat(user5Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Alex Wilson");
+		assertThat(user5Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(2);
+		// Should have Promote to Admin button (not admin)
+		assertThat(user5Card.getByText("Promote to Admin").count()).isEqualTo(1);
+		assertThat(user5Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 4: sarahjones (Non-Admin)
+		Locator user4Card = page.locator(".user-card").nth(4);
+		assertThat(user4Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("4");
+		assertThat(user4Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("sarahjones");
+		assertThat(user4Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Sarah Jones");
+		assertThat(user4Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(1);
+		// Should have Promote to Admin button (not admin)
+		assertThat(user4Card.getByText("Promote to Admin").count()).isEqualTo(1);
+		assertThat(user4Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 3: mikebrown (Admin)
+		Locator user3Card = page.locator(".user-card").nth(5);
+		assertThat(user3Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("3");
+		assertThat(user3Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("mikebrown");
+		assertThat(user3Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Mike Brown");
+		assertThat(user3Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(2);
+		// Should not have Promote to Admin button (already admin)
+		assertThat(user3Card.getByText("Promote to Admin").count()).isEqualTo(0);
+		assertThat(user3Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 2: janesminth (Non-Admin)
+		Locator user2Card = page.locator(".user-card").nth(6);
+		assertThat(user2Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("2");
+		assertThat(user2Card.locator(".user-field").nth(1).locator(".field-value").textContent())
+			.isEqualTo("janesminth");
+		assertThat(user2Card.locator(".user-field").nth(2).locator(".field-value").textContent())
+			.isEqualTo("Jane Smith");
+		assertThat(user2Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(2);
+		// Should have Promote to Admin button (not admin)
+		assertThat(user2Card.getByText("Promote to Admin").count()).isEqualTo(1);
+		assertThat(user2Card.getByText("Ban User").count()).isEqualTo(1);
+
+		// User 1: johndoe (Admin) - lowest ID displayed last
+		Locator user1Card = page.locator(".user-card").nth(7);
+		assertThat(user1Card.locator(".user-field").nth(0).locator(".field-value").textContent()).isEqualTo("1");
+		assertThat(user1Card.locator(".user-field").nth(1).locator(".field-value").textContent()).isEqualTo("johndoe");
+		assertThat(user1Card.locator(".user-field").nth(2).locator(".field-value").textContent()).isEqualTo("John Doe");
+		assertThat(user1Card.locator(".user-field").nth(3).locator(".email-item").count()).isEqualTo(3);
+		// Should not have Promote to Admin button (already admin)
+		assertThat(user1Card.getByText("Promote to Admin").count()).isEqualTo(0);
+		assertThat(user1Card.getByText("Ban User").count()).isEqualTo(1);
 
 		// Test navigation to pending users tab
 		page.locator(".tab-link").nth(1).click();
