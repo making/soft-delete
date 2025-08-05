@@ -97,8 +97,13 @@ class SoftDeleteApplicationTests {
 
 	@Test
 	void loginAsNonAdminUser() {
+		// Navigate to login page
 		page.navigate("http://localhost:" + serverPort);
+		
+		// Login with existing user
 		login("janesminth", "jane.smith@example.org");
+		
+		// Verify successful login and account page display
 		assertThat(page.title()).isEqualTo("Account");
 		assertThat(page.locator("h3").textContent()).isEqualTo("Account Information");
 		assertThat(page.locator("div.account-field").count()).isEqualTo(3);
